@@ -45,7 +45,7 @@ class PacketParser:
 
             # Other IP protocol
             else:
-                parsed_packet["protocol"] = str(packet[IP].proto)
+                return None
 
             return parsed_packet
         except Exception as e:
