@@ -4,7 +4,7 @@ from capture.packet_parser import PacketParser
 from flow.flow_manager import FlowManager
 
 
-PCAP_FILE = "datasets/raw_pcaps/USTC_TFC/Benign/WorldOfWarcraft.pcap"
+PCAP_FILE = "datasets/raw_pcaps/iscx_official/NonVPN-pCAPs-02/ftps_up_2a.pcap"
 
 
 def main():

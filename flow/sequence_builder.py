@@ -274,8 +274,8 @@ class SequenceBuilder:
             "packet_len":
                 packet_len,
 
-            "packet_length":
-                packet_len,
+            # "packet_length":
+            #     packet_len,
 
             "direction":
                 packet.get(
@@ -311,7 +311,7 @@ class SequenceBuilder:
             "dst_port": 0,
             "protocol": "PAD",
             "packet_len": 0,
-            "packet_length": 0,
+            # "packet_length": 0,
             "direction": None,
             "tcp_flags": None,
             "payload_len": 0,
