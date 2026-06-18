@@ -28,7 +28,10 @@ class PacketParser:
                 "src_port": None,
                 "dst_port": None,
                 "protocol": None,
-                "packet_len": len(packet)
+                "packet_len": len(packet),
+
+                # Future feature extraction hooks
+                "tcp_flags": None,
             }
 
             # TCP Packet
@@ -36,6 +39,9 @@ class PacketParser:
                 parsed_packet["protocol"] = "TCP"
                 parsed_packet["src_port"] = packet[TCP].sport
                 parsed_packet["dst_port"] = packet[TCP].dport
+
+                # Numeric TCP flags value
+                parsed_packet["tcp_flags"] = int(packet[TCP].flags)
 
             # UDP Packet
             elif UDP in packet:
@@ -48,6 +54,7 @@ class PacketParser:
                 return None
 
             return parsed_packet
+
         except Exception as e:
-            print(f"Packet parsing error:{e}")
+            print(f"Packet parsing error: {e}")
             return None

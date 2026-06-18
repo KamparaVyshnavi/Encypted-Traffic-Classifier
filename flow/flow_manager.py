@@ -11,6 +11,7 @@ class FlowManager:
     - receive parsed packet
     - validate packet
     - build normalized flat 5-tuple flow key
+    - assign packet direction
     - update FlowTable
     - optionally connect to flow_timeout.py
     - optionally connect to sequence_builder.py
@@ -37,6 +38,7 @@ class FlowManager:
         self.sequence_builder = sequence_builder
 
     def process_packet(self, packet: Dict[str, Any]) -> Dict[str, Any]:
+
         if not self._is_valid_packet(packet):
             return {
                 "status": "invalid_packet",
@@ -47,10 +49,22 @@ class FlowManager:
             }
 
         flow_key = self.build_flow_key(packet)
-        flow = self.flow_table.add_packet(flow_key, packet)
+
+        # Add direction information before storage
+        packet["direction"] = self._compute_direction(
+            packet,
+            flow_key,
+        )
+
+        flow = self.flow_table.add_packet(
+            flow_key,
+            packet,
+        )
 
         sequences = self._try_build_sequences(flow)
-        expired_flows = self._try_expire_flows(packet["timestamp"])
+        expired_flows = self._try_expire_flows(
+            packet["timestamp"]
+        )
 
         return {
             "status": "processed",
@@ -88,14 +102,50 @@ class FlowManager:
 
         protocol = str(packet["protocol"]).upper()
 
-        endpoint_1, endpoint_2 = sorted([endpoint_a, endpoint_b])
+        endpoint_1, endpoint_2 = sorted(
+            [endpoint_a, endpoint_b]
+        )
 
         ip1, port1 = endpoint_1
         ip2, port2 = endpoint_2
 
-        return ip1, ip2, port1, port2, protocol
+        return (
+            ip1,
+            ip2,
+            port1,
+            port2,
+            protocol,
+        )
+
+    def _compute_direction(
+        self,
+        packet: Dict[str, Any],
+        flow_key: FlowKey,
+    ) -> int:
+        """
+        Direction encoding:
+
+        +1 : packet travels from endpoint_1 -> endpoint_2
+        -1 : packet travels from endpoint_2 -> endpoint_1
+
+        endpoint_1 and endpoint_2 are determined
+        by normalized FlowKey ordering.
+        """
+
+        ip1, ip2, port1, port2, _ = flow_key
+
+        if (
+            str(packet["src_ip"]) == ip1
+            and int(packet["src_port"]) == port1
+            and str(packet["dst_ip"]) == ip2
+            and int(packet["dst_port"]) == port2
+        ):
+            return 1
+
+        return -1
 
     def _is_valid_packet(self, packet: Dict[str, Any]) -> bool:
+
         for field in self.REQUIRED_FIELDS:
             if field not in packet:
                 return False
@@ -116,35 +166,58 @@ class FlowManager:
 
         return True
 
-    def _try_build_sequences(self, flow: FlowRecord) -> List[Any]:
+    def _try_build_sequences(
+        self,
+        flow: FlowRecord,
+    ) -> List[Any]:
+
         if self.sequence_builder is None:
             return []
 
-        if hasattr(self.sequence_builder, "build_ready_sequences"):
-            return self.sequence_builder.build_ready_sequences(flow)
+        if hasattr(
+            self.sequence_builder,
+            "build_ready_sequences",
+        ):
+            return self.sequence_builder.build_ready_sequences(
+                flow
+            )
 
         return []
 
-    def _try_expire_flows(self, current_time: float) -> List[FlowRecord]:
+    def _try_expire_flows(
+        self,
+        current_time: float,
+    ) -> List[FlowRecord]:
+
         if self.timeout_handler is None:
             return []
 
         active_flows = self.flow_table.get_all_flows()
 
-        if hasattr(self.timeout_handler, "find_expired_flows"):
-            expired_flows = self.timeout_handler.find_expired_flows(
-                active_flows=active_flows,
-                current_time=float(current_time),
+        if hasattr(
+            self.timeout_handler,
+            "find_expired_flows",
+        ):
+            expired_flows = (
+                self.timeout_handler.find_expired_flows(
+                    active_flows=active_flows,
+                    current_time=float(current_time),
+                )
             )
 
             for flow in expired_flows:
-                self.flow_table.remove_flow(flow.flow_key)
+                self.flow_table.remove_flow(
+                    flow.flow_key
+                )
 
             return expired_flows
 
         return []
 
-    def get_flow(self, flow_key: FlowKey) -> Optional[FlowRecord]:
+    def get_flow(
+        self,
+        flow_key: FlowKey,
+    ) -> Optional[FlowRecord]:
         return self.flow_table.get_flow(flow_key)
 
     def get_all_flows(self) -> List[FlowRecord]:
