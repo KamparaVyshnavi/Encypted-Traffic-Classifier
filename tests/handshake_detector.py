@@ -73,6 +73,13 @@ def main():
     flows_with_handshake = 0
     flows_with_tcp = 0
     flows_with_tls = 0
+    tcp_baselines = 0
+    tls_baselines = 0
+    proxy_baselines = 0
+    no_baseline = 0
+    tls_handshake_with_tcp_baseline = 0
+
+    sample_baselines = []
 
     print()
     print("=" * 80)
@@ -82,6 +89,7 @@ def main():
     for idx, flow in enumerate(flows):
 
         if idx % 100 == 0:
+
             print(
                 f"Processed "
                 f"{idx}/{total_flows} flows..."
@@ -92,6 +100,10 @@ def main():
         has_ack = False
 
         # ------------------------------------------------------
+        # Raw TCP Flag Analysis
+        # ------------------------------------------------------
+
+            # ------------------------------------------------------
         # Raw TCP Flag Analysis
         # ------------------------------------------------------
 
@@ -134,9 +146,52 @@ def main():
 
             result = detector.process_flow(flow)
 
-            if result["handshake_detected"]:
+            baseline_info = result[
+                "baseline_info"
+            ]
+            if (
+                len(result["tls_handshake_packets"]) > 0
+                and baseline_info.get(
+                    "baseline_type"
+                ) == "tcp"
+            ):
+                tls_handshake_with_tcp_baseline += 1
 
-                print(result["handshake_features"])
+            if baseline_info.get(
+                "baseline_available"
+            ):
+
+                baseline_type = baseline_info.get(
+                    "baseline_type"
+                )
+
+                if baseline_type == "tcp":
+                    tcp_baselines += 1
+
+                elif baseline_type == "tls":
+                    tls_baselines += 1
+
+                elif baseline_type == "proxy":
+                    proxy_baselines += 1
+
+            else:
+                no_baseline += 1
+
+            if (
+                len(sample_baselines) < 10
+                and baseline_info.get(
+                    "baseline_available"
+                )
+            ):
+                sample_baselines.append(
+                    (
+                        idx,
+                        baseline_type,
+                        baseline_info.get(
+                            "baseline_latency"
+                        )
+                    )
+                )
 
             if result["handshake_detected"]:
                 flows_with_handshake += 1
@@ -150,6 +205,7 @@ def main():
         except Exception as e:
 
             print()
+
             print(
                 f"Detector Error "
                 f"on flow {idx}: {e}"
@@ -187,6 +243,65 @@ def main():
         f"Flows With SYN+SYNACK+ACK     : "
         f"{candidate_tcp_handshake_flows}"
     )
+    print()
+    print("=" * 80)
+    print("BASELINE EXTRACTION ANALYSIS")
+    print("=" * 80)
+
+    print(
+        f"TCP Baselines                : "
+        f"{tcp_baselines}"
+    )
+
+    print(
+        f"TLS Baselines                : "
+        f"{tls_baselines}"
+    )
+
+    print(
+        f"Proxy Baselines              : "
+        f"{proxy_baselines}"
+    )
+
+    print(
+        f"No Baseline                  : "
+        f"{no_baseline}"
+    )
+
+    print()
+
+    total_baselines = (
+        tcp_baselines
+        + tls_baselines
+        + proxy_baselines
+    )
+
+    print(
+        f"Flows With Baseline          : "
+        f"{total_baselines}"
+    )
+
+    print(
+        f"Baseline Coverage            : "
+        f"{100 * total_baselines / total_flows:.2f}%"
+    )
+    print(
+        f"TLS Flows Using TCP Baseline : "
+        f"{tls_handshake_with_tcp_baseline}"
+    )
+
+    print()
+    print("=" * 80)
+    print("SAMPLE BASELINES")
+    print("=" * 80)
+
+    for flow_id, baseline_type, latency in sample_baselines:
+
+        print(
+            f"Flow {flow_id:5d} | "
+            f"Type={baseline_type:6s} | "
+            f"Latency={latency:.6f}"
+        )
 
     # ==========================================================
     # Detector Statistics
