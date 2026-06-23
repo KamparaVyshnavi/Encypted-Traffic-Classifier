@@ -16,9 +16,7 @@
 #     TCP Baseline
 #         ↓
 #     TLS Baseline
-#         ↓
-#     Proxy Baseline
-#
+#       
 # Therefore, if both TCP and TLS baselines are available in a flow,
 # the TCP baseline is used and TLS baseline is ignored.
 
@@ -226,7 +224,7 @@ class HandshakeDetector:
         Priority:
             TCP SYN -> SYNACK
             TLS ClientHello -> ServerHello
-            Proxy baseline
+            Proxy baseline is removed from here and msde this file to purely detect handshakes. if handshakes are not present , it is dealt by normaliser's fallback mode.
         """
 
         tcp_baseline = self._extract_tcp_baseline(
@@ -243,9 +241,9 @@ class HandshakeDetector:
         if tls_baseline["baseline_available"]:
             return tls_baseline
 
-        return self._extract_proxy_baseline(
-            flow
-        )
+        return {
+            "baseline_availbale": False
+        }
 
 
     def _extract_tcp_baseline(

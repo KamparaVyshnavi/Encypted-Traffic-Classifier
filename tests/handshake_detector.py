@@ -6,7 +6,7 @@ from preprocessing.handshake_detector import HandshakeDetector
 
 
 pcap_file = (
-    r"datasets/raw_pcaps/iscx_official/VPN-PCAPs-01/vpn_hangouts_audio2.pcap"
+    r"datasets/raw_pcaps/iscx_official/NonVPN-PCAPs-02/ftps_up_2a.pcap"
 )
 
 

@@ -13,6 +13,10 @@ class SequenceRecord:
     valid_exit_points: List[int]
     is_padded: bool
     is_closed: bool
+    baseline_info: Optional[Dict] = None
+    baseline_available: bool = False
+    baseline_type: Optional[str] = None
+    baseline_latency: Optional[float] = None
 
 
 @dataclass
@@ -92,6 +96,13 @@ class SequenceBuilder:
         sequence = self.pad_sequence(
             selected_packets
         )
+        baseline_info = getattr(
+        flow,
+        "baseline_info",
+        {
+            "baseline_available": False
+        }
+        )
 
         return SequenceRecord(
             flow_key=flow.flow_key,
@@ -106,6 +117,23 @@ class SequenceBuilder:
                 < self.sequence_length
             ),
             is_closed=flow.is_closed,
+            baseline_info=baseline_info,
+
+            baseline_available=
+                baseline_info.get(
+                    "baseline_available",
+                    False
+                ),
+
+            baseline_type=
+                baseline_info.get(
+                    "baseline_type"
+                ),
+
+            baseline_latency=
+                baseline_info.get(
+                    "baseline_latency"
+                )
         )
 
     def build_sequences(
