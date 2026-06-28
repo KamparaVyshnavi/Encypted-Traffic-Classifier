@@ -16,13 +16,14 @@ class EncodedSequence:
 
     Current feature order:
 
-        [
-            packet_len,
-            direction,
-            protocol_id,
-            tcp_flags_value,
-            timestamp
-        ]
+    [
+    packet_len,
+    direction,
+    protocol_id,
+    tcp_flags,
+    relative_timestamp,
+    inter_arrival_time
+    ]
     """
 
     flow_key: FlowKey
@@ -69,7 +70,7 @@ class FeatureEncoder:
     - future Inference pipeline
     """
 
-    FEATURE_DIMENSION = 5
+    FEATURE_DIMENSION = 6
 
     def __init__(
         self,
@@ -92,9 +93,18 @@ class FeatureEncoder:
         sequence_record: SequenceRecord,
     ) -> EncodedSequence:
 
+        packets = getattr(
+    sequence_record,
+    "normalized_sequence",
+    None,
+)
+
+        if packets is None:
+            packets = sequence_record.sequence
+
         features = []
 
-        for packet in sequence_record.sequence:
+        for packet in packets:
             features.append(
                 self.encode_packet(packet)
             )
@@ -126,40 +136,72 @@ class FeatureEncoder:
     # --------------------------------------------------
 
     def encode_packet(
-        self,
-        packet: Dict[str, Any],
-    ) -> List[float]:
+    self,
+    packet: Dict[str, Any],
+) -> List[float]:
 
         packet_len = float(
-            packet.get("packet_len", 0)
-        )
-
-        direction = float(
-            packet.get("direction", 0) or 0
-        )
-
-        protocol_id = float(
-            self._protocol_to_id(
-                packet.get("protocol")
+            packet.get(
+                "packet_len",
+                0
             )
         )
 
-        tcp_flags_value = float(
-            packet.get("tcp_flags", 0) or 0
+        direction = float(
+            packet.get(
+                "direction",
+                0
+            ) or 0
         )
 
-        timestamp = float(
-            packet.get("timestamp", 0.0)
+        protocol_id = float(
+
+            self._protocol_to_id(
+
+                packet.get(
+                    "protocol"
+                )
+            )
+        )
+
+        tcp_flags = float(
+
+            packet.get(
+                "tcp_flags",
+                0
+            ) or 0
+        )
+
+        relative_timestamp = float(
+
+            packet.get(
+                "relative_timestamp",
+                0.0
+            )
+        )
+
+        inter_arrival_time = float(
+
+            packet.get(
+                "inter_arrival_time",
+                0.0
+            )
         )
 
         return [
-            packet_len,
-            direction,
-            protocol_id,
-            tcp_flags_value,
-            timestamp,
-        ]
 
+            packet_len,
+
+            direction,
+
+            protocol_id,
+
+            tcp_flags,
+
+            relative_timestamp,
+
+            inter_arrival_time,
+        ]
     # --------------------------------------------------
     # Helpers
     # --------------------------------------------------

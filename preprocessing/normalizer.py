@@ -307,9 +307,9 @@ class TemporalNormalizer:
     # =====================================================
 
     def _build_raw_sequence(
-        self,
-        packets
-    ) -> List[Dict]:
+    self,
+    packets
+) -> List[Dict]:
 
         if not packets:
             return []
@@ -321,30 +321,22 @@ class TemporalNormalizer:
 
         for pkt in packets:
 
-            if pkt.get(
+            packet = dict(pkt)
+
+            if packet.get(
                 "is_padding",
                 False
             ):
 
-                sequence.append({
+                packet["relative_timestamp"] = 0.0
+                packet["inter_arrival_time"] = 0.0
 
-                    "packet_len": 0,
-                    "direction": 0,
-
-                    "relative_timestamp":
-                        0.0,
-
-                    "inter_arrival_time":
-                        0.0,
-
-                    "is_padding":
-                        True
-                })
+                sequence.append(packet)
 
                 continue
 
             timestamp = float(
-                pkt["timestamp"]
+                packet["timestamp"]
             )
 
             if first_timestamp is None:
@@ -366,27 +358,15 @@ class TemporalNormalizer:
                     - previous_timestamp
                 )
 
-            sequence.append({
+            packet["relative_timestamp"] = (
+                relative_timestamp
+            )
 
-                "packet_len":
-                    pkt[
-                        "packet_len"
-                    ],
+            packet["inter_arrival_time"] = (
+                iat
+            )
 
-                "direction":
-                    pkt.get(
-                        "direction"
-                    ),
-
-                "relative_timestamp":
-                    relative_timestamp,
-
-                "inter_arrival_time":
-                    iat,
-
-                "is_padding":
-                    False
-            })
+            sequence.append(packet)
 
             previous_timestamp = timestamp
 
@@ -397,52 +377,42 @@ class TemporalNormalizer:
     # =====================================================
 
     def _normalize_sequence(
-        self,
-        sequence,
-        baseline
-    ):
+    self,
+    sequence,
+    baseline
+):
 
         normalized = []
 
-        for item in sequence:
+        for packet in sequence:
 
-            if item[
-                "is_padding"
-            ]:
+            item = dict(packet)
 
-                normalized.append(
-                    dict(item)
-                )
+            if item.get(
+                "is_padding",
+                False
+            ):
+
+                normalized.append(item)
 
                 continue
 
-            normalized.append({
+            item["relative_timestamp"] = (
+                item["relative_timestamp"]
+                / baseline
+            )
 
-                "packet_len":
-                    item[
-                        "packet_len"
-                    ],
+            item["inter_arrival_time"] = (
+                item["inter_arrival_time"]
+                / baseline
+            )
 
-                "direction":
-                    item[
-                        "direction"
-                    ],
+            # Use normalized relative time as timestamp
+            item["timestamp"] = (
+                item["relative_timestamp"]
+            )
 
-                "relative_timestamp":
-                    item[
-                        "relative_timestamp"
-                    ]
-                    / baseline,
-
-                "inter_arrival_time":
-                    item[
-                        "inter_arrival_time"
-                    ]
-                    / baseline,
-
-                "is_padding":
-                    False
-            })
+            normalized.append(item)
 
         return normalized
 

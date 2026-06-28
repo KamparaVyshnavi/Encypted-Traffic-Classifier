@@ -1,0 +1,13 @@
+DEFAULT_SEQUENCE_LENGTH = 20
+
+FEATURE_DIMENSION = 5
+
+NUM_CLASSES = ...
+
+TENSOR_DTYPE = torch.float32
+
+DEVICE = "cuda" if available else "cpu"
+
+PIN_MEMORY = True
+
+NON_BLOCKING = True
