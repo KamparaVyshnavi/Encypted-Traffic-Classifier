@@ -407,11 +407,6 @@ class TemporalNormalizer:
                 / baseline
             )
 
-            # Use normalized relative time as timestamp
-            item["timestamp"] = (
-                item["relative_timestamp"]
-            )
-
             normalized.append(item)
 
         return normalized

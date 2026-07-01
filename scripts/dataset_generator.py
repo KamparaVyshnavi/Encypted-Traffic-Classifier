@@ -11,7 +11,10 @@ from flow.sequence_builder import SequenceBuilder
 
 from preprocessing.handshake_detector import HandshakeDetector
 from preprocessing.normalizer import TemporalNormalizer
-from preprocessing.feature_encoder import FeatureEncoder
+from preprocessing.feature_encoder import (
+    FeatureEncoder,
+    FeatureEncoderConfig,
+)
 
 
 class DatasetGenerator:
@@ -62,14 +65,26 @@ class DatasetGenerator:
             mode=normalization_mode
         )
 
-        self.feature_encoder = FeatureEncoder()
+        self.feature_encoder = FeatureEncoder(
+    FeatureEncoderConfig(
+        use_normalized_features=False
+    )
+)
 
         # -----------------------------
         # Dataset State
         # -----------------------------
 
-        self.sample_index = 0
+        existing = sorted(self.sequence_dir.glob("sample_*.npy"))
 
+        if existing:
+            last = existing[-1].stem          # sample_0004067
+            self.sample_index = (int(last.split("_")[1]) + 1)
+            print(
+        f"Resuming from sample_{self.sample_index:07d}"
+    )
+        else:
+            self.sample_index = 0
         self.label_rows = []
 
         self.stats = {
@@ -117,15 +132,18 @@ class DatasetGenerator:
 
         print()
 
+        resume = False
+
         for pcap in pcap_files:
 
-            print(
-                f"Processing : {pcap.name}"
-            )
+            if not resume:
+                if pcap.name == "ftps_down_1b.pcap":
+                    resume = True
+                else:
+                    continue
 
-            self.process_pcap(
-                pcap
-            )
+            print(f"Processing : {pcap.name}")
+            self.process_pcap(pcap)
 
             print()
 
@@ -365,14 +383,14 @@ class DatasetGenerator:
                 feature_matrix
             )
 
-            self.label_rows.append(
+            # self.label_rows.append(
 
-                (
-                    sample_name,
-                    label
-                )
+            #     (
+            #         sample_name,
+            #         label
+            #     )
 
-            )
+            # )
 
             self.sample_index += 1
 
@@ -611,41 +629,50 @@ if __name__ == "__main__":
 
     generator = DatasetGenerator(
         raw_dataset_dir="datasets/raw_pcaps/iscx_official",
-        output_dir="datasets/processed_sequences",
-        normalization_mode="fallback",
+        output_dir="datasets/processed_sequences_base",
     )
+
+    generator.sample_index = 0
+    generator.label_rows = []
 
     pcap_files = sorted(
         generator.raw_dataset_dir.rglob("*.pcap")
     )
 
+    print(f"Found {len(pcap_files)} PCAP files\n")
+
     for pcap in pcap_files:
 
-        print(f"Processing labels: {pcap.name}")
+        print(f"Processing labels : {pcap.name}")
+
+        generator.flow_manager.clear()
 
         label = generator.get_label(
             pcap.stem
         )
 
-        generator.flow_manager.clear()
-
         with PcapReader(str(pcap)) as reader:
 
             for raw_packet in reader:
 
-                parsed = generator.packet_parser.parse_packet(
-                    raw_packet
+                parsed_packet = (
+                    generator.packet_parser.parse_packet(
+                        raw_packet
+                    )
                 )
 
-                if parsed is not None:
+                if parsed_packet is not None:
+
                     generator.flow_manager.process_packet(
-                        parsed
+                        parsed_packet
                     )
 
         flows = generator.flow_manager.get_all_flows()
 
-        sequences = generator.sequence_builder.build_sequences(
-            flows
+        sequences = (
+            generator.sequence_builder.build_sequences(
+                flows
+            )
         )
 
         for _ in sequences:
@@ -657,7 +684,7 @@ if __name__ == "__main__":
             generator.label_rows.append(
                 (
                     sample_name,
-                    label
+                    label,
                 )
             )
 
@@ -667,4 +694,6 @@ if __name__ == "__main__":
 
     generator.save_metadata()
 
+    print()
     print("labels.csv regenerated successfully.")
+    print(f"Total Samples : {generator.sample_index}")

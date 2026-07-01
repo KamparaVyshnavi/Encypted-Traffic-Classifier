@@ -45,6 +45,7 @@ class FeatureEncoderConfig:
     """
 
     protocol_mapping: Optional[Dict[str, int]] = None
+    use_normalized_features: bool = False
 
     def __post_init__(self) -> None:
         if self.protocol_mapping is None:
@@ -93,14 +94,31 @@ class FeatureEncoder:
         sequence_record: SequenceRecord,
     ) -> EncodedSequence:
 
-        packets = getattr(
-    sequence_record,
-    "normalized_sequence",
-    None,
-)
+        if self.config.use_normalized_features:
 
-        if packets is None:
-            packets = sequence_record.sequence
+            packets = getattr(
+                sequence_record,
+                "normalized_sequence",
+                None,
+            )
+
+            if packets is None:
+                packets = getattr(
+                    sequence_record,
+                    "raw_sequence",
+                    sequence_record.sequence,
+                )
+
+        else:
+
+            packets = getattr(
+                sequence_record,
+                "raw_sequence",
+                None,
+            )
+
+            if packets is None:
+                packets = sequence_record.sequence
 
         features = []
 

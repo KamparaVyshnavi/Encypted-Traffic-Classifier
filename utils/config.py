@@ -25,3 +25,28 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 PIN_MEMORY = True
 NON_BLOCKING = True
+
+# ----------------------------------------------------------
+# Training
+# ----------------------------------------------------------
+
+BATCH_SIZE = 64
+
+LEARNING_RATE = 1e-3
+
+WEIGHT_DECAY = 1e-4
+
+NUM_EPOCHS = 30
+
+TRAIN_SPLIT = 0.8
+
+VALIDATION_SPLIT = 0.2
+
+RANDOM_SEED = 42
+
+CHECKPOINT_DIR = "model/saved_models/normalised"
+
+BEST_MODEL_NAME = "best_model.pth"
+LATEST_MODEL_NAME = "latest_model.pth"
+
+DATASET_ROOT = "datasets/processed_sequences_norm"
