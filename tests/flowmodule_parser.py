@@ -4,7 +4,7 @@ from capture.packet_parser import PacketParser
 from flow.flow_manager import FlowManager
 
 
-PCAP_FILE = "datasets/raw_pcaps/iscx_official/VPN-PCAPs-01/vpn_facebook_chat1b.pcap"
+PCAP_FILE = "datasets/raw_pcaps/VNAT_release/nonvpn_skype-chat_capture34.pcap"
 
 
 def main():

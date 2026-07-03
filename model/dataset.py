@@ -41,6 +41,7 @@ from utils.config import (
     DEFAULT_SEQUENCE_LENGTH,
     FEATURE_DIMENSION,
     TENSOR_DTYPE,
+    DATASET_ROOT,
 )
 
 
@@ -50,12 +51,15 @@ class TrafficDataset(Dataset):
     """
 
     def __init__(
-        self,
-        dataset_root: str | Path = "datasets/processed_sequences",
-        verbose: bool = True,
-    ) -> None:
+    self,
+    dataset_root: str | Path | None = None,
+    verbose: bool = True,
+) -> None:
 
         super().__init__()
+
+        if dataset_root is None:
+            dataset_root = DATASET_ROOT
 
         self.dataset_root = Path(dataset_root)
 

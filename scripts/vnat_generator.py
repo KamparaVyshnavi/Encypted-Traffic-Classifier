@@ -71,21 +71,6 @@ class DatasetGenerator:
     )
 )
 
-        # -----------------------------
-        # Dataset State
-        # -----------------------------
-
-    #     existing = sorted(self.sequence_dir.glob("sample_*.npy"))
-
-    #     if existing:
-    #         last = existing[-1].stem          # sample_0004067
-    #         self.sample_index = (int(last.split("_")[1]) + 1)
-    #         print(
-    #     f"Resuming from sample_{self.sample_index:07d}"
-    # )
-    #     else:
-    #         self.sample_index = 0
-
         self.sample_index = 0
 
         self.label_rows = []
@@ -118,8 +103,8 @@ class DatasetGenerator:
     def run(self):
 
         pcap_files = sorted(
-            self.raw_dataset_dir.rglob("*.pcap")
-        )
+    self.raw_dataset_dir.rglob("*.pcap")
+)
 
         print()
 
@@ -135,20 +120,7 @@ class DatasetGenerator:
 
         print()
 
-        # resume = False
 
-        # for pcap in pcap_files:
-
-        #     if not resume:
-        #         if pcap.name == "ftps_down_1b.pcap":
-        #             resume = True
-        #         else:
-        #             continue
-
-        #     print(f"Processing : {pcap.name}")
-        #     self.process_pcap(pcap)
-
-        #     print()
         for pcap in pcap_files:
 
             print(f"Processing : {pcap.name}")
@@ -162,74 +134,35 @@ class DatasetGenerator:
 
         name = filename.lower()
 
-        # Remove vpn_ prefix
-        if name.startswith("vpn_"):
-            name = name[4:]
+        if "youtube" in name:
+            return "Streaming"
 
-        LABEL_MAP = {
+        if "netflix" in name:
+            return "Streaming"
 
-            # =============================
-            # Streaming
-            # =============================
-            "youtubehtml5": "Streaming",
-            "facebook_video": "Streaming",
-            "hangouts_video": "Streaming",
-            "netflix": "Streaming",
-            "spotify": "Streaming",
-            "youtube": "Streaming",
-            "vimeo": "Streaming",
+        if "vimeo" in name:
+            return "Streaming"
 
-            # =============================
-            # VoIP
-            # =============================
-            "facebook_audio": "VoIP",
-            "hangouts_audio": "VoIP",
-            "skype_audio": "VoIP",
-            "voipbuster": "VoIP",
+        if "skype-chat" in name:
+            return "Chat"
 
-            # =============================
-            # File Transfer
-            # =============================
-            "skype_file": "FileTransfer",
-            "browsing": "Browsing",
-            "ftps": "FileTransfer",
-            "sftp": "FileTransfer",
-            "ftp": "FileTransfer",
-            "scp": "FileTransfer",
+        if "voip" in name:
+            return "VoIP"
 
-            # =============================
-            # Chat
-            # =============================
-            "facebook_chat": "Chat",
-            "hangouts_chat": "Chat",
-            "hangout_chat": "Chat",
-            "gmailchat": "Chat",
-            "skype_chat": "Chat",
-            "facebookchat": "Chat",
-            "aim_chat": "Chat",
-            "icq_chat": "Chat",
-            "aimchat": "Chat",
-            "icqchat": "Chat",
+        if "scp" in name:
+            return "FileTransfer"
 
-            # =============================
-            # Email
-            # =============================
-            "email": "Email",
+        if "sftp" in name:
+            return "FileTransfer"
 
-            # =============================
-            # P2P
-            # =============================
-            "bittorrent": "P2P",
+        if "ssh" in name:
+            return "FileTransfer"
 
-            "browssing_firefox": "Browsing",
-            "browsing_chrome": "Browsing",
-            "browsing": "Browsing",
-        }
+        if "rdp" in name:
+            return "RemoteAccess"
 
-        for prefix, label in LABEL_MAP.items():
-
-            if name.startswith(prefix):
-                return label
+        if "rsync" in name:
+            return "FileTransfer"
 
         return "Unknown"
     # ----------------------------------------------------
@@ -715,8 +648,8 @@ class DatasetGenerator:
 if __name__ == "__main__":
 
     generator = DatasetGenerator(
-        raw_dataset_dir="datasets/raw_pcaps/iscx_official",
-        output_dir="datasets/processed_sequences_newnorm",
+        raw_dataset_dir="datasets/raw_pcaps/VNAT_release",
+        output_dir="datasets/processed_vnat_raw",
         normalization_mode="fallback",
     )
 

@@ -379,8 +379,22 @@ class TemporalNormalizer:
     def _normalize_sequence(
     self,
     sequence,
-    baseline
+    baseline,
 ):
+        """
+        Novelty-1 Temporal Normalization
+
+        Assumption
+        ----------
+        Observed IAT = Network Delay + Application Delay
+
+        Therefore
+
+        Application Delay ≈ Observed IAT − Handshake Baseline
+
+        This removes the estimated network latency while
+        preserving application timing behaviour.
+        """
 
         normalized = []
 
@@ -394,18 +408,33 @@ class TemporalNormalizer:
             ):
 
                 normalized.append(item)
-
                 continue
 
-            item["relative_timestamp"] = (
-                item["relative_timestamp"]
-                / baseline
+            raw_iat = float(
+                item.get(
+                    "inter_arrival_time",
+                    0.0,
+                )
             )
 
-            item["inter_arrival_time"] = (
-                item["inter_arrival_time"]
-                / baseline
-            )
+            # --------------------------------------
+            # Remove estimated network latency
+            # --------------------------------------
+
+            normalized_iat = raw_iat - baseline
+
+            # --------------------------------------
+            # Clamp to zero
+            # --------------------------------------
+
+            if normalized_iat < 0.0:
+                normalized_iat = 0.0
+
+            item["inter_arrival_time"] = normalized_iat
+
+            # Optional (kept for analysis/debugging)
+
+            item["network_baseline"] = baseline
 
             normalized.append(item)
 

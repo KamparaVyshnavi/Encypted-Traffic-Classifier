@@ -15,7 +15,7 @@ from preprocessing.feature_encoder import (
     FeatureEncoder,
     FeatureEncoderConfig,
 )
-
+import statistics
 
 class DatasetGenerator:
 
@@ -135,21 +135,7 @@ class DatasetGenerator:
 
         print()
 
-        # resume = False
-
-        # for pcap in pcap_files:
-
-        #     if not resume:
-        #         if pcap.name == "ftps_down_1b.pcap":
-        #             resume = True
-        #         else:
-        #             continue
-
-        #     print(f"Processing : {pcap.name}")
-        #     self.process_pcap(pcap)
-
-        #     print()
-        for pcap in pcap_files:
+        for pcap in pcap_files[:2]:
 
             print(f"Processing : {pcap.name}")
 
@@ -330,6 +316,67 @@ class DatasetGenerator:
                     sequence
                 )
             )
+
+            # ==========================================================
+            # DEBUG (Temporary)
+            # ==========================================================
+
+            if self.stats["normalized"] < 5 and result["normalization_applied"]:
+
+                print("\n" + "=" * 90)
+
+                print("FLOW :", sequence.flow_key)
+
+                print("Baseline Type    :", result["baseline_type"])
+                print("Baseline Latency :", result["baseline_latency"])
+
+                print()
+
+                print(
+                    f"{'Pkt':<5}"
+                    f"{'RawTime':<15}"
+                    f"{'RawIAT':<15}"
+                    f"{'NormIAT':<15}"
+                )
+
+                raw = result["raw_sequence"]
+                norm = result["normalized_sequence"]
+
+                for i in range(min(20, len(raw))):
+
+                    if raw[i].get("is_padding", False):
+                        continue
+
+                    print(
+                        f"{i:<5}"
+                        f"{raw[i]['relative_timestamp']:<15.8f}"
+                        f"{raw[i]['inter_arrival_time']:<15.8f}"
+                        f"{norm[i]['inter_arrival_time']:<15.8f}"
+                    )
+
+                print("=" * 90)
+
+        
+
+                raw_iat = [
+                    p["inter_arrival_time"]
+                    for p in raw
+                    if not p.get("is_padding", False)
+                ]
+
+                norm_iat = [
+                    p["inter_arrival_time"]
+                    for p in norm
+                    if not p.get("is_padding", False)
+                ]
+
+                print()
+
+                print("Raw Mean :", statistics.mean(raw_iat))
+                print("Raw Std  :", statistics.stdev(raw_iat))
+
+                print("Norm Mean:", statistics.mean(norm_iat))
+                print("Norm Std :", statistics.stdev(norm_iat))
 
             if result[
                 "normalization_applied"
@@ -631,92 +678,11 @@ class DatasetGenerator:
         self.print_summary()
 
 
-# ==========================================================
-# Main
-# ==========================================================
-
-# if __name__ == "__main__":
-
-#     generator = DatasetGenerator(
-#         raw_dataset_dir="datasets/raw_pcaps/iscx_official",
-#         output_dir="datasets/processed_sequences_newnorm",
-#     )
-
-#     generator.sample_index = 0
-#     generator.label_rows = []
-
-#     pcap_files = sorted(
-#         generator.raw_dataset_dir.rglob("*.pcap")
-#     )
-
-#     print(f"Found {len(pcap_files)} PCAP files\n")
-
-#     for pcap in pcap_files:
-
-#         print(f"Processing labels : {pcap.name}")
-
-#         generator.flow_manager.clear()
-
-#         label = generator.get_label(
-#             pcap.stem
-#         )
-
-#         with PcapReader(str(pcap)) as reader:
-
-#             for raw_packet in reader:
-
-#                 parsed_packet = (
-#                     generator.packet_parser.parse_packet(
-#                         raw_packet
-#                     )
-#                 )
-
-#                 if parsed_packet is not None:
-
-#                     generator.flow_manager.process_packet(
-#                         parsed_packet
-#                     )
-
-#         flows = generator.flow_manager.get_all_flows()
-
-#         sequences = (
-#             generator.sequence_builder.build_sequences(
-#                 flows
-#             )
-#         )
-
-#         for _ in sequences:
-
-#             sample_name = (
-#                 f"sample_{generator.sample_index:07d}"
-#             )
-
-#             generator.label_rows.append(
-#                 (
-#                     sample_name,
-#                     label,
-#                 )
-#             )
-
-#             generator.sample_index += 1
-
-#     generator.save_labels()
-
-#     generator.save_metadata()
-
-#     print()
-#     print("labels.csv regenerated successfully.")
-#     print(f"Total Samples : {generator.sample_index}")
-
-# ==========================================================
-# Main
-# ==========================================================
-
 if __name__ == "__main__":
 
     generator = DatasetGenerator(
         raw_dataset_dir="datasets/raw_pcaps/iscx_official",
-        output_dir="datasets/processed_sequences_newnorm",
+        output_dir="datasets/processed_sequences_basell",
         normalization_mode="fallback",
     )
 
