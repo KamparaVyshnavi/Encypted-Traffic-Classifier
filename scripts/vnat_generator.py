@@ -564,92 +564,11 @@ class DatasetGenerator:
         self.print_summary()
 
 
-# ==========================================================
-# Main
-# ==========================================================
-
-# if __name__ == "__main__":
-
-#     generator = DatasetGenerator(
-#         raw_dataset_dir="datasets/raw_pcaps/iscx_official",
-#         output_dir="datasets/processed_sequences_newnorm",
-#     )
-
-#     generator.sample_index = 0
-#     generator.label_rows = []
-
-#     pcap_files = sorted(
-#         generator.raw_dataset_dir.rglob("*.pcap")
-#     )
-
-#     print(f"Found {len(pcap_files)} PCAP files\n")
-
-#     for pcap in pcap_files:
-
-#         print(f"Processing labels : {pcap.name}")
-
-#         generator.flow_manager.clear()
-
-#         label = generator.get_label(
-#             pcap.stem
-#         )
-
-#         with PcapReader(str(pcap)) as reader:
-
-#             for raw_packet in reader:
-
-#                 parsed_packet = (
-#                     generator.packet_parser.parse_packet(
-#                         raw_packet
-#                     )
-#                 )
-
-#                 if parsed_packet is not None:
-
-#                     generator.flow_manager.process_packet(
-#                         parsed_packet
-#                     )
-
-#         flows = generator.flow_manager.get_all_flows()
-
-#         sequences = (
-#             generator.sequence_builder.build_sequences(
-#                 flows
-#             )
-#         )
-
-#         for _ in sequences:
-
-#             sample_name = (
-#                 f"sample_{generator.sample_index:07d}"
-#             )
-
-#             generator.label_rows.append(
-#                 (
-#                     sample_name,
-#                     label,
-#                 )
-#             )
-
-#             generator.sample_index += 1
-
-#     generator.save_labels()
-
-#     generator.save_metadata()
-
-#     print()
-#     print("labels.csv regenerated successfully.")
-#     print(f"Total Samples : {generator.sample_index}")
-
-# ==========================================================
-# Main
-# ==========================================================
-
 if __name__ == "__main__":
 
     generator = DatasetGenerator(
         raw_dataset_dir="datasets/raw_pcaps/VNAT_release",
-        output_dir="datasets/processed_vnat_raw",
+        output_dir="datasets/processed_datasets/vnat_normalised",
         normalization_mode="fallback",
     )
 

@@ -42,6 +42,8 @@ from utils.config import (
     FEATURE_DIMENSION,
     TENSOR_DTYPE,
     DATASET_ROOT,
+    LABEL_MAPPING,
+    INDEX_TO_LABEL,
 )
 
 
@@ -89,36 +91,48 @@ class TrafficDataset(Dataset):
             )
 
         # ------------------------------------------------------------
-        # Remove Unknown class
+        # Keep only supported classes
         # ------------------------------------------------------------
 
         original_samples = len(self.labels)
 
+        supported_classes = set(
+            LABEL_MAPPING.keys()
+        )
+
         self.labels = (
-            self.labels[self.labels["label"] != "Unknown"]
+
+            self.labels[
+
+                self.labels["label"].isin(
+                    supported_classes
+                )
+
+            ]
+
             .reset_index(drop=True)
+
         )
 
         removed = original_samples - len(self.labels)
 
         if removed > 0 and verbose:
-            print(f"Removed {removed} Unknown samples.")
+
+            print(
+                f"Removed {removed} unsupported samples."
+            )
 
         # ------------------------------------------------------------
-        # Create Label Encoding
+        # Global Label Mapping
         # ------------------------------------------------------------
 
-        unique_labels = sorted(self.labels["label"].unique())
+        self.label_to_index = dict(
+            LABEL_MAPPING
+        )
 
-        self.label_to_index = {
-            label: index
-            for index, label in enumerate(unique_labels)
-        }
-
-        self.index_to_label = {
-            index: label
-            for label, index in self.label_to_index.items()
-        }
+        self.index_to_label = dict(
+            INDEX_TO_LABEL
+        )
 
     def __len__(self) -> int:
 
@@ -166,7 +180,7 @@ class TrafficDataset(Dataset):
 
     def num_classes(self) -> int:
 
-        return len(self.label_to_index)
+        return len(LABEL_MAPPING)
 
     def get_class_distribution(self) -> Dict[str, int]:
 

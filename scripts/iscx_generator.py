@@ -715,8 +715,8 @@ class DatasetGenerator:
 if __name__ == "__main__":
 
     generator = DatasetGenerator(
-        raw_dataset_dir="datasets/raw_pcaps/iscx_official",
-        output_dir="datasets/processed_sequences_newnorm",
+        raw_dataset_dir="datasets/raw_pcaps/VNAT_release",
+        output_dir="datasets/vnat_normalised",
         normalization_mode="fallback",
     )
 

@@ -44,9 +44,61 @@ VALIDATION_SPLIT = 0.2
 
 RANDOM_SEED = 42
 
-CHECKPOINT_DIR = "model/saved_models/newnormalised"
+CHECKPOINT_DIR = "model/saved_models/normalised_final"
 
 BEST_MODEL_NAME = "best_model.pth"
 LATEST_MODEL_NAME = "latest_model.pth"
 
-DATASET_ROOT = "datasets/processed_sequences_newnorm"
+DATASET_ROOT = "datasets/processed_datasets/iscx_normalised"
+
+# ----------------------------------------------------------
+# Cross Network Evaluation
+# ----------------------------------------------------------
+
+# Baseline Experiment
+
+BASELINE_MODEL_PATH = (
+    "model/saved_models/baseline_final/best_model.pth"
+)
+
+BASELINE_TEST_DATASET = (
+    "datasets/processed_datasets/vnat_raw"
+)
+
+# Novelty-1 Experiment
+
+NOVELTY_MODEL_PATH = (
+    "model/saved_models/normalised_final/best_model.pth"
+)
+
+NOVELTY_TEST_DATASET = (
+    "datasets/processed_datasets/vnat_normalised"
+)
+
+
+LABEL_MAPPING = {
+    "Chat": 0,
+    "Email": 1,
+    "FileTransfer": 2,
+    "P2P": 3,
+    "Streaming": 4,
+    "VoIP": 5,
+}
+
+INDEX_TO_LABEL = {
+    value: key
+    for key, value in LABEL_MAPPING.items()
+}
+
+
+# ---------------------------------------------------------
+# Multi-Exit Checkpoints
+# ---------------------------------------------------------
+
+MULTI_EXIT_CHECKPOINT_DIR = "model/saved_models/multi_exit"
+
+MULTI_EXIT_BEST_MODEL_NAME = "best_model.pth"
+
+MULTI_EXIT_LATEST_MODEL_NAME = "latest_model.pth"
+
+MULTI_EXIT_HISTORY_NAME = "training_history.json"
