@@ -95,10 +95,18 @@ INDEX_TO_LABEL = {
 # Multi-Exit Checkpoints
 # ---------------------------------------------------------
 
-MULTI_EXIT_CHECKPOINT_DIR = "model/saved_models/multi_exit"
+MULTI_EXIT_CHECKPOINT_DIR = "model/saved_models/multi_exit_normalised"
 
 MULTI_EXIT_BEST_MODEL_NAME = "best_model.pth"
 
 MULTI_EXIT_LATEST_MODEL_NAME = "latest_model.pth"
 
 MULTI_EXIT_HISTORY_NAME = "training_history.json"
+
+# ---------------------------------------------------------
+# Multi-Exit Inference
+# ---------------------------------------------------------
+
+ISCX_THRESHOLD = 0.90
+
+VNAT_THRESHOLD = 0.70

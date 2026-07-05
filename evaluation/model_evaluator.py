@@ -44,6 +44,7 @@ from sklearn.metrics import (
 
 from model.dataset import TrafficDataset
 from model.temporal_cnn import TemporalCNN
+from model.inference import MultiExitInference
 
 from utils.config import (
     DEVICE,
@@ -97,13 +98,36 @@ class ModelEvaluator:
     )
     """
 
-    def __init__(self):
+    def __init__(
+    self,
+    multi_exit: bool = False,
+    threshold: float = 0.90,
+):
+
+        self.multi_exit = multi_exit
+
+        self.threshold = threshold
 
         self.model = None
 
         self.dataset = None
 
         self.dataloader = None
+
+        self.inference = None
+
+        self.exit_counts = {
+
+            "exit1": 0,
+
+            "exit2": 0,
+
+            "exit3": 0,
+
+            "final": 0,
+        }
+
+        self.total_blocks = 0
 
 
     # -------------------------------------------------------------------------
@@ -123,6 +147,13 @@ class ModelEvaluator:
                 f"Checkpoint not found:\n"
                 f"{checkpoint_path}"
             )
+        if self.multi_exit:
+
+            self.inference = MultiExitInference(
+                checkpoint_path,
+            )
+
+            return
 
         checkpoint = torch.load(
             checkpoint_path,
@@ -179,50 +210,69 @@ class ModelEvaluator:
     # -------------------------------------------------------------------------
 
     @torch.no_grad()
-
     def predict(self):
-
-        if self.model is None:
-
-            raise RuntimeError(
-                "Load model before prediction."
-            )
-
-        if self.dataloader is None:
-
-            raise RuntimeError(
-                "Load dataset before prediction."
-            )
 
         predictions = []
 
         targets = []
 
+        if self.multi_exit:
+
+            for sequences, labels in self.dataloader:
+
+                for sequence, label in zip(
+                    sequences,
+                    labels,
+                ):
+
+                    result = self.inference.predict(
+
+                        sequence,
+
+                        threshold=self.threshold,
+                    )
+
+                    predictions.append(
+                        result["prediction"]
+                    )
+
+                    targets.append(
+                        label.item()
+                    )
+
+                    self.exit_counts[
+                        result["exit"]
+                    ] += 1
+
+                    self.total_blocks += (
+                        result["blocks_executed"]
+                    )
+
+            return predictions, targets
+
+        # -------------------------------------------------
+        # Original CNN
+        # -------------------------------------------------
+
         for sequences, labels in self.dataloader:
 
             sequences = sequences.to(
-
                 DEVICE,
-
                 non_blocking=NON_BLOCKING,
             )
 
             logits = self.model(sequences)
 
             predicted = torch.argmax(
-
                 logits,
-
                 dim=1,
             )
 
             predictions.extend(
-
                 predicted.cpu().numpy().tolist()
             )
 
             targets.extend(
-
                 labels.numpy().tolist()
             )
 
@@ -349,6 +399,43 @@ class ModelEvaluator:
             f"F1 Score  : "
             f"{result.f1_score:.4%}"
         )
+        if self.multi_exit:
+
+            print()
+
+            print("=" * 70)
+
+            print("EARLY EXIT STATISTICS")
+
+            print("=" * 70)
+
+            total = sum(
+                self.exit_counts.values()
+            )
+
+            for exit_name, count in self.exit_counts.items():
+
+                print(
+
+                    f"{exit_name:<8}"
+
+                    f": "
+
+                    f"{count:5d}"
+
+                    f" ({count/total:.2%})"
+
+                )
+
+            print()
+
+            print(
+
+                f"Average Blocks : "
+
+                f"{self.total_blocks/total:.2f}"
+
+            )
 
         print()
 
@@ -414,7 +501,7 @@ class ModelEvaluator:
             self.print_results(
                 result
             )
-
+        result.evaluator = self
         return result
 
 
@@ -423,10 +510,12 @@ class ModelEvaluator:
 # =============================================================================
 
 def evaluate_model(
-    checkpoint_path: str | Path,
-    dataset_root: str | Path,
-    print_summary: bool = True,
-) -> EvaluationResult:
+    checkpoint_path,
+    dataset_root,
+    print_summary=True,
+    multi_exit=False,
+    threshold=0.90,
+):
     """
     Functional interface.
 
@@ -438,7 +527,12 @@ def evaluate_model(
     )
     """
 
-    evaluator = ModelEvaluator()
+    evaluator = ModelEvaluator(
+
+    multi_exit=multi_exit,
+
+    threshold=threshold,
+)
 
     return evaluator.evaluate(
         checkpoint_path=checkpoint_path,

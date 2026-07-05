@@ -386,7 +386,166 @@ class MultiExitCNN(nn.Module):
             return outputs, self.feature_cache
 
         return outputs
+    
+    @torch.no_grad()
+    def early_exit_forward(
+        self,
+        x: torch.Tensor,
+        threshold: float = 0.90,
+    ) -> Dict[str, object]:
+        """
+        Performs true early-exit inference.
 
+        Unlike forward(), this method stops computation
+        immediately when an exit satisfies the confidence
+        threshold.
+
+        Returns
+        -------
+        {
+            "prediction": int,
+            "confidence": float,
+            "exit": str,
+        }
+        """
+
+        if x.ndim != 3:
+            raise ValueError(
+                f"Expected 3D input tensor "
+                f"(batch, sequence, features), "
+                f"got shape {tuple(x.shape)}"
+            )
+
+        if x.shape[-1] != FEATURE_DIMENSION:
+            raise ValueError(
+                f"Expected feature dimension "
+                f"{FEATURE_DIMENSION}, "
+                f"got {x.shape[-1]}"
+            )
+
+        x = x.permute(0, 2, 1)
+
+        # ============================================================
+        # Block 1
+        # ============================================================
+        blocks_executed = 1
+        block1 = self.block1(x)
+
+        exit1_logits = self.exit1(block1)
+
+        probabilities = torch.softmax(
+            exit1_logits,
+            dim=1,
+        )
+
+        confidence, prediction = torch.max(
+            probabilities,
+            dim=1,
+        )
+
+        if confidence.item() >= threshold:
+
+            return {
+
+                "prediction": prediction.item(),
+
+                "confidence": confidence.item(),
+
+                "exit": "exit1",
+                "blocks_executed": blocks_executed,
+            }
+
+        # ============================================================
+        # Block 2
+        # ============================================================
+        blocks_executed += 1
+        block2 = self.block2(block1)
+
+        exit2_logits = self.exit2(block2)
+
+        probabilities = torch.softmax(
+            exit2_logits,
+            dim=1,
+        )
+
+        confidence, prediction = torch.max(
+            probabilities,
+            dim=1,
+        )
+
+        if confidence.item() >= threshold:
+
+            return {
+
+                "prediction": prediction.item(),
+
+                "confidence": confidence.item(),
+
+                "exit": "exit2",
+                "blocks_executed": blocks_executed,
+            }
+
+        # ============================================================
+        # Block 3
+        # ============================================================
+        blocks_executed += 1
+        block3 = self.block3(block2)
+
+        exit3_logits = self.exit3(block3)
+
+        probabilities = torch.softmax(
+            exit3_logits,
+            dim=1,
+        )
+
+        confidence, prediction = torch.max(
+            probabilities,
+            dim=1,
+        )
+
+        if confidence.item() >= threshold:
+
+            return {
+
+                "prediction": prediction.item(),
+
+                "confidence": confidence.item(),
+
+                "exit": "exit3",
+                "blocks_executed": blocks_executed,
+            }
+
+        # ============================================================
+        # Final Exit
+        # ============================================================
+        blocks_executed += 1
+        pooled = self.global_pool(block3)
+
+        embedding = pooled.squeeze(-1)
+
+        final_logits = self.final_classifier(
+            embedding,
+        )
+
+        probabilities = torch.softmax(
+            final_logits,
+            dim=1,
+        )
+
+        confidence, prediction = torch.max(
+            probabilities,
+            dim=1,
+        )
+
+        return {
+
+            "prediction": prediction.item(),
+
+            "confidence": confidence.item(),
+
+            "exit": "final",
+            "blocks_executed": blocks_executed,
+        }
     def extract_features(
         self,
         x: torch.Tensor,
