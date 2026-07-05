@@ -181,9 +181,14 @@ class EncryptedTrafficClassifier:
     # Interface Selection
     # ------------------------------------------------------------
 
-    def select_interface(self):
+    def select_interface(
+    self,
+    interface=None,
+):
 
-        interface = self.interface_manager.select_interface()
+        if interface is None:
+
+            interface = self.interface_manager.select_interface()
 
         self.sniffer = PacketSniffer(
 
@@ -200,6 +205,27 @@ class EncryptedTrafficClassifier:
         print(f"Using Interface : {interface}")
 
         print()
+
+    def start(
+    self,
+    interface,
+):
+
+        self.initialize()
+
+        self.select_interface(interface)
+
+        print("Starting live capture...")
+
+        print()
+
+        self.sniffer.start_capture()
+    
+    def stop(self):
+
+        if self.sniffer is not None:
+
+            self.sniffer.stop_capture()
 
     # ------------------------------------------------------------
     # Packet Processing
@@ -398,15 +424,9 @@ class EncryptedTrafficClassifier:
 
     def run(self):
 
-        self.initialize()
+        self.start(None)
 
-        self.select_interface()
-
-        print("Starting live capture...")
-
-        print()
-
-        self.sniffer.start_capture()
+    
     # ------------------------------------------------------------
     # Traffic Distribution
     # ------------------------------------------------------------

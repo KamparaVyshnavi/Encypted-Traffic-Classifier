@@ -49,7 +49,7 @@ CHECKPOINT_DIR = "model/saved_models/normalised_final"
 BEST_MODEL_NAME = "best_model.pth"
 LATEST_MODEL_NAME = "latest_model.pth"
 
-DATASET_ROOT = "datasets/processed_datasets/iscx_normalised"
+DATASET_ROOT = "datasets/processed_datasets/vnat_normalised"
 
 # ----------------------------------------------------------
 # Cross Network Evaluation

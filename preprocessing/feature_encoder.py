@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from flow.flow_table import FlowKey
 from flow.sequence_builder import SequenceRecord
+import torch
 
 
 @dataclass
@@ -278,7 +279,19 @@ class FeatureEncoder:
             )
 
         return encoded_sequence
+    def encode_tensor(
+    self,
+    sequence_record,
+):
 
+        encoded = self.encode_sequence(
+            sequence_record
+        )
+
+        return torch.tensor(
+            encoded.features,
+            dtype=torch.float32,
+        )
     # --------------------------------------------------
     # Utility Methods
     # --------------------------------------------------

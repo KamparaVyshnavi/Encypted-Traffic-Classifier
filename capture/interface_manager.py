@@ -17,7 +17,19 @@ class InterfaceManager:
         """
         Returns all available network interfaces.
         """
-        return list(psutil.net_if_addrs().keys())
+        #return list(psutil.net_if_addrs().keys())
+        
+        stats = psutil.net_if_stats()
+
+        interfaces = []
+
+        for name in psutil.net_if_addrs():
+
+            if name in stats and stats[name].isup:
+
+                interfaces.append(name)
+
+        return interfaces
 
     def display_interfaces(self) -> None:
         """
