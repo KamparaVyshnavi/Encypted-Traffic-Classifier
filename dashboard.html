@@ -2,33 +2,36 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Encrypted Traffic Classifier</title>
+<title>Encrypted Traffic Profiler</title>
 <script src="/static/chart.umd.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';this.onerror=function(){this.onerror=null;var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js';document.head.appendChild(s);};"></script>
 <style>
   :root {
     --bg: #0a0f0d;
-    --panel: #0d1512;
+    /* --panel: #0d1512; */
+    --panel: #121c18;
     --border: #1f3d33;
-    --green: #3ddc97;
+    --green: #3ac78a;
     --green-dim: #1f5c46;
     --amber: #d4a017;
-    --cyan: #22d3ee;
-    --pink: #f4739a;
+    --cyan: #47a9b9;
+    --pink: #e46791;
     --purple: #a78bfa;
     --gray: #64748b;
     --text: #d7e6df;
-    --text-dim: #6b8579;
+    /* --text-dim: #6b8579; */
+    --text-dim: #839a8f;
   }
   * { box-sizing: border-box; }
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: "Courier New", ui-monospace, monospace;
+    /* font-family: "Outfit", ui-monospace, monospace;  */
+    font-family: "Inter", sans-serif;
     margin: 0;
     padding: 24px;
     font-size: 14px;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
 
   .panel {
     border: 1px dashed var(--border);
@@ -144,7 +147,7 @@
 <div class="wrap">
 
   <div class="panel header">
-    <h1>🛡 ENCRYPTED TRAFFIC CLASSIFIER</h1>
+    <h1>🛡 ENCRYPTED TRAFFIC PROFILER</h1>
     <div class="status">
       <span id="status-label"><span class="dot off" id="status-dot"></span><span class="off-label" id="status-text">OFFLINE</span></span>
       <span id="timer">00:00:00</span>
@@ -229,23 +232,26 @@
     </table>
   </div>
 
-  <div class="footer">Encrypted Traffic Profiler — live dashboard, all values sourced from the running classifier</div>
+  <div class="footer">Encrypted Traffic Profiler • Real-Time Encrypted Network Traffic Analysis</div>
 </div>
 
 <script>
+const css = getComputedStyle(document.documentElement);
+
 const CLASS_COLORS = {
-  Streaming: "#3ddc97",
-  Chat: "#d4a017",
-  VoIP: "#22d3ee",
-  FileTransfer: "#f4739a",
-  Email: "#a78bfa",
-  P2P: "#64748b",
+    Streaming: css.getPropertyValue("--green").trim(),
+    Chat: css.getPropertyValue("--amber").trim(),
+    VoIP: css.getPropertyValue("--cyan").trim(),
+    FileTransfer: css.getPropertyValue("--pink").trim(),
+    Email: css.getPropertyValue("--purple").trim(),
+    P2P: css.getPropertyValue("--gray").trim(),
 };
 const EXIT_COLORS = {
-  exit1: "#3ddc97",
-  exit2: "#d4a017",
-  exit3: "#22d3ee",
-  final: "#f4739a",
+    exit1: css.getPropertyValue("--green").trim(),
+    exit2: css.getPropertyValue("--amber").trim(),
+    exit3: css.getPropertyValue("--cyan").trim(),
+    final: css.getPropertyValue("--pink").trim(),
+
 };
 
 let trafficChart, exitChart;
@@ -256,7 +262,20 @@ function makeDonut(ctx, colorMap) {
     type: "doughnut",
     data: {
       labels: labels,
-      datasets: [{ data: labels.map(() => 0), backgroundColor: labels.map(l => colorMap[l]), borderWidth: 0 }],
+    //   datasets: [{ data: labels.map(() => 0), backgroundColor: labels.map(l => colorMap[l]), borderWidth: 0 }]//
+    datasets: [{
+    data: labels.map(() => 0),
+    backgroundColor: labels.map(l => colorMap[l]),
+
+    // Border between slices
+    borderColor: "#0a0f0d",      // Same as your dashboard background
+    borderWidth: 1.5,
+
+    // Slight spacing between slices
+    spacing:0.5,
+
+    hoverBorderWidth: 3
+}],
     },
     options: {
       cutout: "62%",
