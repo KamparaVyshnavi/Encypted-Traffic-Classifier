@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Encrypted Traffic Classifier</title>
+<script src="/static/chart.umd.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';this.onerror=function(){this.onerror=null;var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js';document.head.appendChild(s);};"></script>
+<style>
+  :root {
+    --bg: #0a0f0d;
+    --panel: #0d1512;
+    --border: #1f3d33;
+    --green: #3ddc97;
+    --green-dim: #1f5c46;
+    --amber: #d4a017;
+    --cyan: #22d3ee;
+    --pink: #f4739a;
+    --purple: #a78bfa;
+    --gray: #64748b;
+    --text: #d7e6df;
+    --text-dim: #6b8579;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Courier New", ui-monospace, monospace;
+    margin: 0;
+    padding: 24px;
+    font-size: 14px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  .panel {
+    border: 1px dashed var(--border);
+    border-radius: 3px;
+    padding: 16px 20px;
+    margin-bottom: 18px;
+    background: var(--panel);
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header h1 {
+    font-size: 16px;
+    letter-spacing: 1px;
+    margin: 0;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 13px;
+  }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; }
+  .dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.off { background: var(--pink); box-shadow: 0 0 6px var(--pink); }
+  .live-label { color: var(--green); }
+  .off-label { color: var(--pink); }
+
+  /* Controls */
+  .controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .controls label { color: var(--text-dim); }
+  select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    font-family: inherit;
+    min-width: 260px;
+  }
+  button {
+    font-family: inherit;
+    background: transparent;
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 8px 18px;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+  button:hover { background: var(--green-dim); }
+  button.stop { border-color: var(--pink); color: var(--pink); }
+  button.stop:hover { background: #3a1a24; }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* Grid layouts */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+  .stat-label { color: var(--text-dim); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+  .stat-value { font-size: 26px; margin-top: 8px; color: var(--amber); }
+
+  h2.title {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--green);
+    text-transform: uppercase;
+    margin: 0 0 10px 0;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 8px;
+  }
+
+  .kv-row { display: flex; justify-content: space-between; padding: 5px 0; }
+  .kv-row .k { color: var(--text-dim); }
+  .kv-row .v { color: var(--green); font-weight: bold; }
+
+  .chart-box { display: flex; align-items: center; gap: 16px; }
+  .chart-canvas-wrap { position: relative; width: 160px; height: 160px; flex-shrink: 0; }
+  .legend { font-size: 12.5px; flex: 1; }
+  .legend-row { display: flex; align-items: center; justify-content: space-between; padding: 3px 0; }
+  .legend-row .swatch { width: 10px; height: 10px; display: inline-block; margin-right: 8px; border-radius: 2px; }
+  .legend-row .name { flex: 1; }
+
+  /* Traffic summary bars */
+  .bar-row { display: flex; align-items: center; margin-bottom: 8px; gap: 10px; }
+  .bar-row .label { width: 100px; color: var(--text-dim); }
+  .bar-track { flex: 1; height: 8px; background: #10201a; border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--green); }
+  .bar-row .pct { width: 45px; text-align: right; color: var(--amber); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--text-dim); font-weight: normal; text-transform: uppercase; font-size: 11px; padding: 6px 4px; border-bottom: 1px dashed var(--border); }
+  td { padding: 6px 4px; border-bottom: 1px solid #101a16; }
+  td.exit { color: var(--cyan); }
+  td.conf { color: var(--amber); }
+
+  .footer { text-align: center; color: var(--text-dim); font-size: 11px; margin-top: 20px; }
+  .empty { color: var(--text-dim); font-style: italic; padding: 10px 0; }
+  .error-banner { color: var(--pink); font-size: 12px; margin-top: 8px; }
+
+  @media (max-width: 760px) {
+    .stats-row, .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="panel header">
+    <h1>🛡 ENCRYPTED TRAFFIC CLASSIFIER</h1>
+    <div class="status">
+      <span id="status-label"><span class="dot off" id="status-dot"></span><span class="off-label" id="status-text">OFFLINE</span></span>
+      <span id="timer">00:00:00</span>
+    </div>
+  </div>
+
+  <div class="panel controls">
+    <label>Interface :</label>
+    <select id="interface-select"></select>
+    <button id="start-btn">▶ Start</button>
+    <button id="stop-btn" class="stop" disabled>■ Stop</button>
+    <span class="error-banner" id="error-banner"></span>
+  </div>
+
+  <div class="panel">
+    <div class="stats-row">
+      <div>
+        <div class="stat-label">Packets</div>
+        <div class="stat-value" id="stat-packets">0</div>
+      </div>
+      <div>
+        <div class="stat-label">Active Flows</div>
+        <div class="stat-value" id="stat-active">0</div>
+      </div>
+      <div>
+        <div class="stat-label">Completed</div>
+        <div class="stat-value" id="stat-completed">0</div>
+      </div>
+      <div>
+        <div class="stat-label">Avg Latency</div>
+        <div class="stat-value" id="stat-latency">0 ms</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <h2 class="title">Traffic Distribution</h2>
+      <div class="chart-box">
+        <div class="chart-canvas-wrap"><canvas id="traffic-chart"></canvas></div>
+        <div class="legend" id="traffic-legend"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 class="title">Early Exit Usage</h2>
+      <div class="chart-box">
+        <div class="chart-canvas-wrap"><canvas id="exit-chart"></canvas></div>
+        <div class="legend" id="exit-legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <h2 class="title">Latest Classification</h2>
+      <div id="latest-block">
+        <div class="empty">Waiting for first prediction...</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 class="title">Performance</h2>
+      <div class="kv-row"><span class="k">Avg Packets</span><span class="v" id="perf-packets">-- / 20</span></div>
+      <div class="kv-row"><span class="k">Saved Computation</span><span class="v" id="perf-saved">--%</span></div>
+      <div class="kv-row"><span class="k">Throughput</span><span class="v" id="perf-throughput">0 flows/sec</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 class="title">Traffic Summary</h2>
+    <div id="traffic-summary"></div>
+  </div>
+
+  <div class="panel">
+    <h2 class="title">Recent Predictions</h2>
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Prediction</th><th>Exit</th><th>Confidence</th></tr>
+      </thead>
+      <tbody id="history-body">
+        <tr><td colspan="4" class="empty">No predictions yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">Encrypted Traffic Profiler — live dashboard, all values sourced from the running classifier</div>
+</div>
+
+<script>
+const CLASS_COLORS = {
+  Streaming: "#3ddc97",
+  Chat: "#d4a017",
+  VoIP: "#22d3ee",
+  FileTransfer: "#f4739a",
+  Email: "#a78bfa",
+  P2P: "#64748b",
+};
+const EXIT_COLORS = {
+  exit1: "#3ddc97",
+  exit2: "#d4a017",
+  exit3: "#22d3ee",
+  final: "#f4739a",
+};
+
+let trafficChart, exitChart;
+
+function makeDonut(ctx, colorMap) {
+  const labels = Object.keys(colorMap);
+  return new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: labels,
+      datasets: [{ data: labels.map(() => 0), backgroundColor: labels.map(l => colorMap[l]), borderWidth: 0 }],
+    },
+    options: {
+      cutout: "62%",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      animation: { duration: 300 },
+    },
+  });
+}
+
+function renderLegend(el, colorMap, counts, total) {
+  el.innerHTML = "";
+  Object.keys(colorMap).forEach(label => {
+    const count = counts[label] || 0;
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+    const row = document.createElement("div");
+    row.className = "legend-row";
+    row.innerHTML = `<span class="swatch" style="background:${colorMap[label]}"></span>
+                      <span class="name">${label}</span><span>${pct}%</span>`;
+    el.appendChild(row);
+  });
+}
+
+function fmtTime(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  const h = String(Math.floor(sec / 3600)).padStart(2, "0");
+  const m = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
+  const s = String(sec % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+async function fetchJSON(url, options) {
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (e) {
+    throw new Error(
+      `Cannot reach ${url}. Is dashboard_server.py running, and are you ` +
+      `viewing this page at http://127.0.0.1:8000 (NOT by double-clicking ` +
+      `dashboard.html as a local file)?`
+    );
+  }
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    // We got a response, but it isn't JSON -- almost always this means the
+    // request never reached the FastAPI app (e.g. the page was opened as a
+    // file:// URL, a different server answered on this port, or the path
+    // is wrong) and we got back an HTML error/redirect page instead.
+    const body = await res.text();
+    throw new Error(
+      `Expected JSON from ${url} but got "${contentType || "unknown"}" ` +
+      `(status ${res.status}). First bytes: ${body.slice(0, 60)}`
+    );
+  }
+  return res.json();
+}
+
+async function loadInterfaces() {
+  const data = await fetchJSON("/api/interfaces");
+  const select = document.getElementById("interface-select");
+  select.innerHTML = "";
+  (data.interfaces || []).forEach(iface => {
+    const opt = document.createElement("option");
+    opt.value = iface;
+    opt.textContent = iface;
+    select.appendChild(opt);
+  });
+  if (!data.interfaces || data.interfaces.length === 0) {
+    const opt = document.createElement("option");
+    opt.textContent = "No interfaces found";
+    select.appendChild(opt);
+  }
+}
+
+async function startCapture() {
+  const iface = document.getElementById("interface-select").value;
+  try {
+    const data = await fetchJSON("/api/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interface: iface }),
+    });
+    document.getElementById("error-banner").textContent = data.ok ? "" : (data.error || "Failed to start.");
+  } catch (e) {
+    document.getElementById("error-banner").textContent = e.message;
+  }
+}
+
+async function stopCapture() {
+  await fetch("/api/stop", { method: "POST" });
+}
+
+function updateDashboard(d) {
+  // status
+  const dot = document.getElementById("status-dot");
+  const label = document.getElementById("status-text");
+  document.getElementById("start-btn").disabled = d.running;
+  document.getElementById("stop-btn").disabled = !d.running;
+
+  if (d.running) {
+    dot.className = "dot live";
+    label.className = "live-label";
+    label.textContent = "LIVE";
+  } else {
+    dot.className = "dot off";
+    label.className = "off-label";
+    label.textContent = "OFFLINE";
+  }
+
+  document.getElementById("timer").textContent = fmtTime(d.elapsed_seconds);
+  document.getElementById("error-banner").textContent = d.error || "";
+
+  // top stats
+  document.getElementById("stat-packets").textContent = d.packet_count;
+  document.getElementById("stat-active").textContent = d.active_flows;
+  document.getElementById("stat-completed").textContent = d.completed_flows;
+  document.getElementById("stat-latency").textContent = (d.average_latency * 1000).toFixed(2) + " ms";
+
+  // traffic distribution donut
+  const classTotal = Object.values(d.class_counter).reduce((a, b) => a + b, 0);
+  const classLabels = Object.keys(CLASS_COLORS);
+  if (trafficChart) {
+    trafficChart.data.datasets[0].data = classLabels.map(l => d.class_counter[l] || 0);
+    trafficChart.update("none");
+  }
+  renderLegend(document.getElementById("traffic-legend"), CLASS_COLORS, d.class_counter, classTotal);
+
+  // exit usage donut
+  const exitTotal = Object.values(d.exit_counter).reduce((a, b) => a + b, 0);
+  const exitLabels = Object.keys(EXIT_COLORS);
+  if (exitChart) {
+    exitChart.data.datasets[0].data = exitLabels.map(l => d.exit_counter[l] || 0);
+    exitChart.update("none");
+  }
+  renderLegend(document.getElementById("exit-legend"), EXIT_COLORS, d.exit_counter, exitTotal);
+
+  // latest classification
+  const latestBlock = document.getElementById("latest-block");
+  if (d.latest_prediction) {
+    const lp = d.latest_prediction;
+    latestBlock.innerHTML = `
+      <div class="kv-row"><span class="k">Prediction</span><span class="v">${lp.prediction}</span></div>
+      <div class="kv-row"><span class="k">Confidence</span><span class="v">${(lp.confidence * 100).toFixed(0)}%</span></div>
+      <div class="kv-row"><span class="k">Exit</span><span class="v">${lp.exit}</span></div>
+      <div class="kv-row"><span class="k">Inference Time</span><span class="v">${(lp.inference_time * 1000).toFixed(2)} ms</span></div>
+    `;
+  } else {
+    latestBlock.innerHTML = `<div class="empty">Waiting for first prediction...</div>`;
+  }
+
+  // performance
+  document.getElementById("perf-packets").textContent = d.average_packets.toFixed(1) + " / 20";
+  document.getElementById("perf-saved").textContent = d.latency_saved.toFixed(1) + "%";
+  document.getElementById("perf-throughput").textContent = d.throughput.toFixed(1) + " flows/sec";
+
+  // traffic summary bars
+  const summaryEl = document.getElementById("traffic-summary");
+  summaryEl.innerHTML = "";
+  classLabels.forEach(label => {
+    const count = d.class_counter[label] || 0;
+    const pct = classTotal > 0 ? (count / classTotal) * 100 : 0;
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    row.innerHTML = `
+      <span class="label">${label}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${CLASS_COLORS[label]}"></div></div>
+      <span class="pct">${pct.toFixed(0)}%</span>
+    `;
+    summaryEl.appendChild(row);
+  });
+
+  // recent predictions
+  const historyBody = document.getElementById("history-body");
+  if (d.history && d.history.length > 0) {
+    historyBody.innerHTML = "";
+    d.history.forEach(h => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${h.time}</td>
+        <td>${h.prediction}</td>
+        <td class="exit">${h.exit}</td>
+        <td class="conf">${(h.confidence * 100).toFixed(0)}%</td>
+      `;
+      historyBody.appendChild(row);
+    });
+  } else {
+    historyBody.innerHTML = `<tr><td colspan="4" class="empty">No predictions yet.</td></tr>`;
+  }
+}
+
+async function poll() {
+  try {
+    const data = await fetchJSON("/api/stats");
+    updateDashboard(data);
+  } catch (e) {
+    console.error("stats poll failed", e);
+    document.getElementById("error-banner").textContent = e.message;
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  // Load interfaces and wire up controls FIRST and independently of the
+  // charts. If Chart.js failed to load (e.g. no internet access / CDN
+  // blocked -- common on a machine dedicated to packet capture), we still
+  // want the interface dropdown, buttons, and stats polling to work.
+  loadInterfaces();
+  document.getElementById("start-btn").addEventListener("click", startCapture);
+  document.getElementById("stop-btn").addEventListener("click", stopCapture);
+
+  poll();
+  setInterval(poll, 1000);
+
+  // Charts are a nice-to-have on top of the real stats. If Chart.js isn't
+  // available, fail loudly in the console/banner instead of silently
+  // killing the rest of the page's JS (which is what was happening before).
+  try {
+    if (typeof Chart === "undefined") {
+      throw new Error("Chart.js did not load (check network/CDN access).");
+    }
+    trafficChart = makeDonut(document.getElementById("traffic-chart"), CLASS_COLORS);
+    exitChart = makeDonut(document.getElementById("exit-chart"), EXIT_COLORS);
+  } catch (e) {
+    console.error("Chart init failed, dashboard will run without donut charts:", e);
+    const banner = document.getElementById("error-banner");
+    if (!banner.textContent) {
+      banner.textContent = "Charts unavailable (Chart.js failed to load) — stats still update below.";
+    }
+  }
+});
+</script>
+</body>
+</html>
