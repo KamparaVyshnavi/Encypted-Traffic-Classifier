@@ -21,6 +21,7 @@ This project uses that observable behavior to classify traffic in real time — 
 - Email
 - VoIP
 - P2P
+  
 All classification is **payload-independent** — only metadata is ever touched.
 
 ---
@@ -206,10 +207,3 @@ See the [Dashboards](#dashboards) section above for details on each.
 ## License
 
 **© 2026 Vyshnavi Kampara. All Rights Reserved.**
-
----
-
-## Author
-
-**Vyshnavi Kampara**
-Encrypted Traffic Profiler (Adaptive Real-Time Encrypted Traffic Behavioral Classification System)
